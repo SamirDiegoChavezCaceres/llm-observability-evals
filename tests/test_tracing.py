@@ -1,3 +1,5 @@
+import pytest
+
 from llm_obs import NoOpTracer, RecordingTracer, get_tracer, rag_pipeline
 
 DOCS = ["Paris is the capital of France.", "France is in Europe."]
@@ -35,3 +37,18 @@ def test_get_tracer_defaults_to_noop_without_keys(monkeypatch):
     monkeypatch.delenv("LANGFUSE_PUBLIC_KEY", raising=False)
     monkeypatch.delenv("LANGFUSE_SECRET_KEY", raising=False)
     assert isinstance(get_tracer(), NoOpTracer)
+
+
+def test_failure_is_marked_on_the_span():
+    tracer = RecordingTracer()
+
+    def broken(_query, _docs):
+        raise RuntimeError("model timed out")
+
+    with pytest.raises(RuntimeError):
+        rag_pipeline("boom", _retrieve, broken, tracer)
+
+    root = tracer.roots[0]
+    generation = next(c for c in root.children if c.as_type == "generation")
+    assert generation.error == "model timed out"
+    assert root.error  # the failure bubbles to the root span too

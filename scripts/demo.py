@@ -1,19 +1,42 @@
-"""Run the instrumented pipeline and grade its output.
+"""A guided walkthrough: tracing (success + failure) and LLM-as-judge evals.
 
     python scripts/demo.py
 
-Uses the RecordingTracer so you can see the span tree without a Langfuse
-account. Set LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY to send real traces.
+Uses the RecordingTracer (no Langfuse account needed) and the offline
+HeuristicJudge, plus a fake LLM judge so the LLM path is shown without a key.
 """
 
 from __future__ import annotations
 
-from llm_obs import EvalSample, HeuristicJudge, RecordingTracer, evaluate_dataset, rag_pipeline
+from llm_obs import (
+    EvalSample,
+    HeuristicJudge,
+    LLMJudge,
+    RecordingTracer,
+    evaluate_dataset,
+    rag_pipeline,
+)
 
 DOCS = ["Paris is the capital of France.", "France is in Europe."]
 
 
+def rule(title: str) -> None:
+    print(f"\n=== {title} ===")
+
+
+def show_tree(node, depth=0) -> None:
+    tag = f"[{node.as_type}] {node.name}"
+    if node.error:
+        tag += f"  ERROR: {node.error}"
+    elif node.output:
+        tag += f"  output={node.output}"
+    print("  " * depth + tag)
+    for child in node.children:
+        show_tree(child, depth + 1)
+
+
 def main() -> None:
+    rule("1. A successful run, traced as a nested span tree")
     tracer = RecordingTracer()
     answer = rag_pipeline(
         "What is the capital of France?",
@@ -21,27 +44,38 @@ def main() -> None:
         generate=lambda q, docs: "The capital of France is Paris.",
         tracer=tracer,
     )
-    print("answer:", answer)
-
-    print("\nspan tree:")
-
-    def show(node, depth=0):
-        tag = f"[{node.as_type}] {node.name}"
-        extra = f" output={node.output}" if node.output else ""
-        print("  " * depth + tag + extra)
-        for child in node.children:
-            show(child, depth + 1)
-
+    print(f"answer: {answer}\n")
     for root in tracer.roots:
-        show(root)
+        show_tree(root)
 
-    print("\neval (heuristic judge):")
+    rule("2. A failing run marks the error on the span")
+    tracer = RecordingTracer()
+
+    def broken_generate(q, docs):
+        raise RuntimeError("model timed out")
+
+    try:
+        rag_pipeline("boom", retrieve=lambda q: DOCS, generate=broken_generate, tracer=tracer)
+    except RuntimeError:
+        pass
+    for root in tracer.roots:
+        show_tree(root)
+
+    rule("3. Grade answers with the offline HeuristicJudge")
+    context = " ".join(DOCS)
     samples = [
-        EvalSample("What is the capital of France?", answer, " ".join(DOCS)),
-        EvalSample("What is the capital of France?", "Bananas grow in the tropics.", " ".join(DOCS)),
+        EvalSample("What is the capital of France?", "The capital of France is Paris.", context),
+        EvalSample("What is the capital of France?", "It is probably Lyon or Marseille.", context),
+        EvalSample("What is the capital of France?", "Bananas grow in the tropics.", context),
     ]
     for name, s in evaluate_dataset(samples, HeuristicJudge()).items():
-        print(f"  {name:<13} mean={s.mean} pass_rate={s.pass_rate} n={s.n}")
+        print(f"  {name:<13} mean={s.mean:<5} pass_rate={s.pass_rate:<5} n={s.n}")
+
+    rule("4. The same interface with an LLM judge (fake model here)")
+    fake = lambda prompt: '{"groundedness": 0.95, "relevance": 0.90}'
+    scores = LLMJudge(complete=fake).score(samples[0])
+    for s in scores:
+        print(f"  {s.name:<13} value={s.value} passed={s.passed}")
 
 
 if __name__ == "__main__":

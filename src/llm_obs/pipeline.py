@@ -28,7 +28,14 @@ def rag_pipeline(
             r.update(num_docs=len(docs))
 
         with root.span("generation", as_type="generation", input=query) as g:
-            answer = generate(query, docs)
+            try:
+                answer = generate(query, docs)
+            except Exception as exc:
+                # Record the failure on the span before it propagates, so a
+                # broken run is visible in the trace, not just in the logs.
+                g.error(str(exc))
+                root.error("generation failed")
+                raise
             g.update(output=answer)
 
         root.update(output=answer)

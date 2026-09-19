@@ -6,6 +6,12 @@ Two things an LLM feature needs before it goes to production: you have to be abl
 to **see** what it did, and **measure** whether it was any good. This repo covers
 both.
 
+## Demo
+
+![demo](assets/demo.gif)
+
+Generate it with [VHS](https://github.com/charmbracelet/vhs): `vhs demo.tape`.
+
 ## 1. Tracing that never breaks the request
 
 The pipeline is instrumented once against a tiny tracer interface, and the
