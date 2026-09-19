@@ -85,6 +85,15 @@ Covers nested-span recording, the no-op default, the heuristic judge on grounded
 vs hallucinated answers, dataset aggregation, and the LLM judge's JSON parsing
 (including the non-JSON fallback).
 
+## Limitations and next steps
+
+- The heuristic judge measures word overlap, not meaning; use the LLM judge for
+  anything nuanced.
+- The Langfuse path is best-effort and only lightly exercised without a live
+  instance to send traces to.
+- Next: add a small human-labeled set to check the judge against, and track eval
+  scores across versions.
+
 ## License
 
 MIT.
