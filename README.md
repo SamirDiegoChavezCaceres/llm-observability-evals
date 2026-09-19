@@ -1,5 +1,7 @@
 # llm-observability-evals
 
+[![CI](https://github.com/SamirDiegoChavezCaceres/llm-observability-evals/actions/workflows/ci.yml/badge.svg)](https://github.com/SamirDiegoChavezCaceres/llm-observability-evals/actions/workflows/ci.yml) ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 Two things an LLM feature needs before it goes to production: you have to be able
 to **see** what it did, and **measure** whether it was any good. This repo covers
 both.
