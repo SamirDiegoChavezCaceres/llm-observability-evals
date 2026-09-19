@@ -1,0 +1,78 @@
+# llm-observability-evals
+
+Two things an LLM feature needs before it goes to production: you have to be able
+to **see** what it did, and **measure** whether it was any good. This repo has a
+small, honest take on both.
+
+A from-scratch, neutral rewrite of patterns I built for a production LLM agent.
+
+## 1. Tracing that never breaks the request
+
+The pipeline is instrumented once against a tiny tracer interface, and the
+backend is chosen at runtime:
+
+- **No keys set? `NoOpTracer`.** Instrumentation must never be the reason a
+  request fails, so without credentials it does nothing, with zero overhead.
+- **`RecordingTracer`** captures the span tree in memory for tests and local
+  inspection.
+- **`LangfuseTracer`** sends traces to [Langfuse](https://langfuse.com); nesting
+  is automatic, and a misbehaving SDK call degrades to a no-op for that node
+  instead of taking down the pipeline.
+
+```python
+from llm_obs import rag_pipeline, RecordingTracer
+
+tracer = RecordingTracer()
+rag_pipeline("What is the capital of France?", retrieve, generate, tracer)
+# tracer.roots -> rag-pipeline
+#                   ├─ [retriever]  output={'num_docs': 2}
+#                   └─ [generation] output={'output': 'The capital of France is Paris.'}
+```
+
+Turn on real tracing by installing the extra and setting the env:
+
+```bash
+pip install -e ".[langfuse]"
+export LANGFUSE_PUBLIC_KEY=... LANGFUSE_SECRET_KEY=...
+```
+
+## 2. LLM-as-judge evaluation
+
+Score outputs against a rubric. Two judges, one interface:
+
+- **`HeuristicJudge`** - deterministic, offline. Groundedness = share of the
+  answer's content words found in the retrieved context; relevance = share of
+  the question's words the answer addresses. A cheap regression gate that needs
+  no model.
+- **`LLMJudge`** - sends a rubric to any `complete(prompt) -> str` model and
+  parses per-criterion scores back (and fails safe on non-JSON output). The
+  model is injected, so it is provider-agnostic and testable with a fake.
+
+```python
+from llm_obs import EvalSample, HeuristicJudge, evaluate_dataset
+
+samples = [EvalSample(question, answer, context), ...]
+summary = evaluate_dataset(samples, HeuristicJudge())
+# {'groundedness': CriterionSummary(mean=0.5, pass_rate=0.5, n=2), ...}
+```
+
+## Try it
+
+```bash
+python scripts/demo.py     # prints the span tree and an eval summary
+```
+
+## Tests
+
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Covers nested-span recording, the no-op default, the heuristic judge on grounded
+vs hallucinated answers, dataset aggregation, and the LLM judge's JSON parsing
+(including the non-JSON fallback).
+
+## License
+
+MIT.
