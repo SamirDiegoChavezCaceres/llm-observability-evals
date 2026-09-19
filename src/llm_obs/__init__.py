@@ -10,6 +10,7 @@ from .evals import (
     evaluate_dataset,
 )
 from .pipeline import rag_pipeline
+from .providers import openai_complete
 from .tracing import (
     LangfuseTracer,
     NoOpTracer,
@@ -28,6 +29,7 @@ __all__ = [
     "Judge",
     "HeuristicJudge",
     "LLMJudge",
+    "openai_complete",
     "evaluate_dataset",
     "CriterionSummary",
 ]

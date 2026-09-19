@@ -54,6 +54,18 @@ summary = evaluate_dataset(samples, HeuristicJudge())
 # {'groundedness': CriterionSummary(mean=0.5, pass_rate=0.5, n=2), ...}
 ```
 
+To grade with a real model instead of the heuristic:
+
+```bash
+pip install -e ".[openai]"
+cp .env.example .env               # then put your OPENAI_API_KEY in .env
+```
+
+```python
+from llm_obs import LLMJudge, openai_complete, evaluate_dataset
+summary = evaluate_dataset(samples, LLMJudge(complete=openai_complete()))
+```
+
 ## Try it
 
 ```bash
