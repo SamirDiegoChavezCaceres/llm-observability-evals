@@ -8,6 +8,8 @@ HeuristicJudge, plus a fake LLM judge so the LLM path is shown without a key.
 
 from __future__ import annotations
 
+import os
+
 from llm_obs import (
     EvalSample,
     HeuristicJudge,
@@ -71,10 +73,26 @@ def main() -> None:
     for name, s in evaluate_dataset(samples, HeuristicJudge()).items():
         print(f"  {name:<13} mean={s.mean:<5} pass_rate={s.pass_rate:<5} n={s.n}")
 
-    rule("4. The same interface with an LLM judge (fake model here)")
-    fake = lambda prompt: '{"groundedness": 0.95, "relevance": 0.90}'
-    scores = LLMJudge(complete=fake).score(samples[0])
-    for s in scores:
+    rule("4. The same interface, now with an LLM judge")
+    try:
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except Exception:
+        pass
+    judge = None
+    if os.getenv("OPENAI_API_KEY"):
+        try:
+            from llm_obs import openai_complete
+
+            judge = LLMJudge(complete=openai_complete())
+            print("  model: OpenAI")
+        except Exception:
+            judge = None  # openai not installed -> fall back so the demo still runs
+    if judge is None:
+        judge = LLMJudge(complete=lambda p: '{"groundedness": 0.95, "relevance": 0.90}')
+        print("  model: fake (set OPENAI_API_KEY and install .[openai] for a real one)")
+    for s in judge.score(samples[0]):
         print(f"  {s.name:<13} value={s.value} passed={s.passed}")
 
 

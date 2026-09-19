@@ -74,6 +74,24 @@ from llm_obs import LLMJudge, openai_complete, evaluate_dataset
 summary = evaluate_dataset(samples, LLMJudge(complete=openai_complete()))
 ```
 
+### Sending real traces to Langfuse
+
+The `NoOpTracer` and `RecordingTracer` are real in-memory backends, not a mock of
+Langfuse. To send traces to Langfuse itself, set credentials and the tracer
+switches automatically:
+
+- Easiest, no infra: a free [Langfuse Cloud](https://cloud.langfuse.com) project
+  gives you the two keys.
+- Self-hosted: run Langfuse's official docker-compose (see their repo).
+
+```bash
+pip install -e ".[langfuse]"
+cp .env.example .env    # set LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY (+ HOST if self-hosting)
+```
+
+With the keys set, `get_tracer()` returns the `LangfuseTracer`; without them it
+stays a no-op, so nothing else in the code changes.
+
 ## Try it
 
 ```bash
