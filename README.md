@@ -1,10 +1,8 @@
 # llm-observability-evals
 
 Two things an LLM feature needs before it goes to production: you have to be able
-to **see** what it did, and **measure** whether it was any good. This repo has a
-small, honest take on both.
-
-A from-scratch, neutral rewrite of patterns I built for a production LLM agent.
+to **see** what it did, and **measure** whether it was any good. This repo covers
+both.
 
 ## 1. Tracing that never breaks the request
 
