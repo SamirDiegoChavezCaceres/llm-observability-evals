@@ -10,6 +10,14 @@ both.
 
 ![demo](assets/demo.gif)
 
+The demo (`scripts/demo.py`) runs offline (a `RecordingTracer` instead of a real
+Langfuse account, the heuristic judge, and a canned LLM judge) on a toy RAG about
+the capital of France. It shows (1) a successful run traced as a nested span
+tree, (2) a failing run marking the error on the span, (3) grading three answers
+(correct, wrong, off-topic) with the offline heuristic judge, and (4) the same
+scoring interface backed by an LLM judge, real if `OPENAI_API_KEY` is set,
+otherwise a fake one so the path still runs.
+
 Generate it with [VHS](https://github.com/charmbracelet/vhs): `vhs demo.tape`.
 
 ## 1. Tracing that never breaks the request
