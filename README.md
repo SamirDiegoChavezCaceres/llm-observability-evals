@@ -115,12 +115,12 @@ pytest
 
 Covers nested-span recording, the no-op default, the heuristic judge on grounded
 vs hallucinated answers, dataset aggregation, and the LLM judge's JSON parsing
-(including the non-JSON fallback).
+(including a reply that is not valid JSON).
 
 ## Limitations and next steps
 
-- The heuristic judge measures word overlap, not meaning; use the LLM judge for
-  anything nuanced.
+- The heuristic judge measures word overlap, not meaning; use the LLM judge when
+  the answer is right but worded differently from the source.
 - The Langfuse path is best-effort and only lightly exercised without a live
   instance to send traces to.
 - Next: add a small human-labeled set to check the judge against, and track eval
